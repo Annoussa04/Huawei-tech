@@ -8,6 +8,8 @@ def get_bandwidth_multiplier(t_effective):
         return 1.0
 
 STABILITY_BONUS = float('+inf')
+ALPHA = 0.1
+EPSILON = 1e-9
 
 M, N, FN, T = map(int, input().split())
 
@@ -38,46 +40,57 @@ for t in range(T):
         multiplier = get_bandwidth_multiplier(effective_time)
         available_bw[(x, y)] = B * multiplier
 
-    sorted_flows = sorted(flows.items(), key=lambda item: (-item[1]['Q_rem'], item[1]['t_start']))
+    
+    active_flows = []
+    for f, data in flows.items():
+        if data['t_start'] <= t and data['Q_rem'] > EPSILON:
+            active_flows.append((f, data))
+
+    def get_flow_priority(flow_item):
+        f, data = flow_item
+        remaining_q = data['Q_rem']
+        time_left = max(1, T - t)
+        urgency = remaining_q / time_left
+        return urgency
+    
+    sorted_active_flows = sorted(active_flows, key=get_flow_priority, reverse=True)
 
 
-    for f, flow_data in sorted_flows:
-        if flow_data['t_start'] <= t and flow_data['Q_rem'] > 1e-9:
-            
-            best_uav_coords = None
-            best_score = float('-inf') 
-            
-            access_x, access_y = flow_data['access_x'], flow_data['access_y']
-            m1, n1, m2, n2 = flow_data['m1'], flow_data['n1'], flow_data['m2'], flow_data['n2']
-            
-            for i in range(m1, m2 + 1):
-                for j in range(n1, n2 + 1):
-                    candidate_coords = (i, j)
+    for f, flow_data in sorted_active_flows:
+
+        best_uav_coords = None
+        best_score = float('-inf') 
+        
+        access_x, access_y = flow_data['access_x'], flow_data['access_y']
+        m1, n1, m2, n2 = flow_data['m1'], flow_data['n1'], flow_data['m2'], flow_data['n2']
+        
+        for i in range(m1, m2 + 1):
+            for j in range(n1, n2 + 1):
+                candidate_coords = (i, j)
+                
+                if candidate_coords in available_bw and available_bw[candidate_coords] > EPSILON:
+                    distance = abs(access_x - i) + abs(access_y - j)
                     
-                    if candidate_coords in available_bw and available_bw[candidate_coords] > 1e-9:
-                        distance = abs(access_x - i) + abs(access_y - j)
-                        
-                        alpha = 0.1
-                        distance_score_multiplier = 2**(-alpha * distance)
-                        score = available_bw[candidate_coords] * distance_score_multiplier
-                        
-                        if candidate_coords == flow_data['last_uav']:
-                            score *= STABILITY_BONUS
-                        
-                        if score > best_score:
-                            best_score = score
-                            best_uav_coords = candidate_coords
+                    distance_score_multiplier = 2**(-ALPHA * distance)
+                    score = available_bw[candidate_coords] * distance_score_multiplier
+                    
+                    if candidate_coords == flow_data['last_uav']:
+                        score *= STABILITY_BONUS
+                    
+                    if score > best_score:
+                        best_score = score
+                        best_uav_coords = candidate_coords
 
-            if best_uav_coords is not None:
-                q_transferrable = min(flow_data['Q_rem'], available_bw[best_uav_coords])
-
+        if best_uav_coords is not None:
+            q_transferrable = min(flow_data['Q_rem'], available_bw[best_uav_coords])
+            
+            if q_transferrable > EPSILON:
                 flow_data['Q_rem'] -= q_transferrable
                 available_bw[best_uav_coords] -= q_transferrable
                 flow_data['last_uav'] = best_uav_coords
 
                 uav_x, uav_y = best_uav_coords
                 record_of_flows[f].append([t, uav_x, uav_y, q_transferrable])
-
 
 for f, records in record_of_flows.items():
     print(f, len(records))
