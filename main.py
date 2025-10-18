@@ -55,7 +55,7 @@ for t in range(T):
                     if candidate_coords in available_bw and available_bw[candidate_coords] > 1e-9:
                         distance = abs(access_x - i) + abs(access_y - j)
                         
-                        score = available_bw[candidate_coords] - (distance )
+                        score = available_bw[candidate_coords] - 10 * (distance )
                         
                         if score > best_score:
                             best_score = score
