@@ -26,7 +26,6 @@ for _ in range(FN):
         'Q_rem': float(Q_total),
         'm1': m1, 'n1': n1, 'm2': m2, 'n2': n2
             }
-# (The first part of your code remains unchanged)
 
 for t in range(T):
     available_bw = {}
