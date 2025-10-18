@@ -36,7 +36,7 @@ for t in range(T):
         multiplier = get_bandwidth_multiplier(effective_time)
         available_bw[(x, y)] = B * multiplier
 
-    sorted_flows = sorted(flows.items(), key=lambda item: item[1]['t_start'])
+    sorted_flows = sorted(flows.items(), key=lambda item: (-item[1]['Q_rem'], item[1]['t_start']))
 
 
     for f, flow_data in sorted_flows:
