@@ -26,6 +26,7 @@ for _ in range(FN):
         'Q_rem': float(Q_total),
         'm1': m1, 'n1': n1, 'm2': m2, 'n2': n2
             }
+# (The first part of your code remains unchanged)
 
 for t in range(T):
     available_bw = {}
@@ -38,28 +39,36 @@ for t in range(T):
 
     sorted_flows = sorted(flows.items(), key=lambda item: item[1]['t_start'])
 
+
     for f, flow_data in sorted_flows:
-        if flow_data['t_start'] <= t and flow_data['Q_rem'] > 1e-9: 
+
+        if flow_data['t_start'] <= t and flow_data['Q_rem'] > 1e-9:
             
+            closest_uav_coords = None
+            min_distance = float('inf')
+            
+            access_x, access_y = flow_data['access_x'], flow_data['access_y']
             m1, n1, m2, n2 = flow_data['m1'], flow_data['n1'], flow_data['m2'], flow_data['n2']
             
             for i in range(m1, m2 + 1):
                 for j in range(n1, n2 + 1):
-                    landing_uav_coords = (i, j)
-              
-                    if landing_uav_coords in available_bw and available_bw[landing_uav_coords] > 1e-9:
-                        q_transferrable = min(flow_data['Q_rem'], available_bw[landing_uav_coords])
-                        
-                        flow_data['Q_rem'] -= q_transferrable
-                        
-                        available_bw[landing_uav_coords] -= q_transferrable
+                    candidate_coords = (i, j)
+                    
+                    if candidate_coords in available_bw and available_bw[candidate_coords] > 1e-9:
 
-                        record_of_flows[f].append([t, i, j, q_transferrable])
+                        distance = abs(access_x - i) + abs(access_y - j)
                         
-                        break
-                else: 
-                    continue 
-                break 
+                        if distance < min_distance:
+                            min_distance = distance
+                            closest_uav_coords = candidate_coords
+
+
+            if closest_uav_coords is not None:
+                q_transferrable = min(flow_data['Q_rem'], available_bw[closest_uav_coords])
+                flow_data['Q_rem'] -= q_transferrable
+                available_bw[closest_uav_coords] -= q_transferrable
+                uav_x, uav_y = closest_uav_coords
+                record_of_flows[f].append([t, uav_x, uav_y, q_transferrable])
 
 for f, records in record_of_flows.items():
     print(f, len(records))
