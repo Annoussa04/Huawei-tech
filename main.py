@@ -10,6 +10,7 @@ def get_bandwidth_multiplier(t_effective):
 STABILITY_BONUS = float('+inf')
 ALPHA = 0.1
 EPSILON = 1e-9
+LANDING_UAV_THRESHOLD = 3
 
 M, N, FN, T = map(int, input().split())
 
@@ -28,7 +29,7 @@ for _ in range(FN):
         'access_x': x, 'access_y': y, 't_start': t_start,
         'Q_rem': float(Q_total),
         'm1': m1, 'n1': n1, 'm2': m2, 'n2': n2,
-        'last_uav': None
+        'last_uav': None, 'change_count': 0
             }
 
 for t in range(T):
@@ -70,12 +71,14 @@ for t in range(T):
                 
                 if candidate_coords in available_bw and available_bw[candidate_coords] > EPSILON:
                     distance = abs(access_x - i) + abs(access_y - j)
-                    
                     distance_score_multiplier = 2**(-ALPHA * distance)
                     score = available_bw[candidate_coords] * distance_score_multiplier
                     
-                    if candidate_coords == flow_data['last_uav']:
-                        score *= STABILITY_BONUS
+                    effective_k = flow_data['change_count'] + 1
+                    
+                    if effective_k < LANDING_UAV_THRESHOLD:
+                        if candidate_coords == flow_data['last_uav']:
+                            score *= STABILITY_BONUS
                     
                     if score > best_score:
                         best_score = score
@@ -85,6 +88,10 @@ for t in range(T):
             q_transferrable = min(flow_data['Q_rem'], available_bw[best_uav_coords])
             
             if q_transferrable > EPSILON:
+                
+                if flow_data['last_uav'] is not None and best_uav_coords != flow_data['last_uav']:
+                    flow_data['change_count'] += 1
+
                 flow_data['Q_rem'] -= q_transferrable
                 available_bw[best_uav_coords] -= q_transferrable
                 flow_data['last_uav'] = best_uav_coords
