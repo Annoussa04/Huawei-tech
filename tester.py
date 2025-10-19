@@ -117,11 +117,14 @@ def parse_and_score(solution_output, test_case_str):
     
     flow_scores = {}
     
-    for f, records in parsed_solution.items():
-        if f not in flows:
-            validation_errors.append(f"Flow {f}: Submitted solution for a non-existent flow.")
+    # --- START OF MODIFICATION ---
+
+    for f in range(FN): # Iterate through all expected flows to handle non-submission cases
+        if f not in parsed_solution:
+            flow_scores[f] = {'total': 0, 'traffic': 0, 'delay': 0, 'distance': 0, 'landing': 0}
             continue
-            
+
+        records = parsed_solution[f]
         flow_info = flows[f]
         total_sent_q = 0
         delay_score_num = 0
@@ -131,7 +134,6 @@ def parse_and_score(solution_output, test_case_str):
         for rec in records:
             t, x, y, z = rec['t'], rec['x'], rec['y'], rec['z']
             
-            # --- Validation Checks ---
             if not (flow_info['m1'] <= x <= flow_info['m2'] and flow_info['n1'] <= y <= flow_info['n2']):
                 validation_errors.append(f"Flow {f} @t={t}: Landing point ({x},{y}) is outside its allowed range.")
             if t < flow_info['ts'] or t >= T:
@@ -141,27 +143,33 @@ def parse_and_score(solution_output, test_case_str):
             total_sent_q += z
             landing_points.add((x,y))
             
-            # --- Score Component Calculations ---
             delay = t - flow_info['ts']
             distance = abs(x - flow_info['ax']) + abs(y - flow_info['ay'])
             
             delay_score_num += (10 / (delay + 10)) * z
             dist_score_num += (2**(-0.1 * distance)) * z
 
-        if total_sent_q > flow_info['qt'] * 1.0001: # Allow for float precision errors
+        if total_sent_q > flow_info['qt'] * 1.0001:
              validation_errors.append(f"Flow {f}: Total sent traffic ({total_sent_q:.2f}) exceeds Q_total ({flow_info['qt']}).")
 
-        # Finalize scores for this flow
         q_total = flow_info['qt']
-        traffic_score = min(total_sent_q, q_total) / q_total
+        traffic_score = min(total_sent_q, q_total) / q_total if q_total > 0 else 0
         delay_score = delay_score_num / q_total if q_total > 0 else 0
         dist_score = dist_score_num / q_total if q_total > 0 else 0
         landing_score = 1.0 / len(landing_points) if landing_points else 0
 
         final_flow_score = 100 * (0.4 * traffic_score + 0.2 * delay_score + 0.3 * dist_score + 0.1 * landing_score)
-        flow_scores[f] = final_flow_score
+        
+        flow_scores[f] = {
+            'total': final_flow_score,
+            'traffic': traffic_score,
+            'delay': delay_score,
+            'distance': dist_score,
+            'landing': landing_score
+        }
 
-    # Check bandwidth violations
+    # --- END OF MODIFICATION ---
+
     for t, usage_at_t in uav_usage.items():
         for (x,y), total_z in usage_at_t.items():
             uav_info = uavs[(x,y)]
@@ -173,27 +181,34 @@ def parse_and_score(solution_output, test_case_str):
     # --- 4. Calculate Final Score ---
     overall_score = 0
     if total_q_all_flows > 0:
-        for f, score in flow_scores.items():
-            overall_score += (flows[f]['qt'] / total_q_all_flows) * score
+        for f, scores in flow_scores.items():
+            overall_score += (flows[f]['qt'] / total_q_all_flows) * scores['total']
             
     # --- 5. Print Report ---
-    print("\n" + "="*50)
-    print(" " * 18 + "SCORING REPORT")
-    print("="*50)
+    print("\n" + "="*60)
+    print(" " * 22 + "SCORING REPORT")
+    print("="*60)
     
     if validation_errors:
         print(f"\n🚨 Found {len(validation_errors)} VALIDATION ERRORS: 🚨")
-        for err in validation_errors[:5]: # Print first 5 errors
+        for err in validation_errors[:5]:
             print(f"  - {err}")
         if len(validation_errors) > 5:
             print(f"  ... and {len(validation_errors) - 5} more.")
         print("\nNote: Scores are calculated but may be invalid due to errors.")
         
     print(f"\n🏆 FINAL SCORE: {overall_score:.4f} 🏆\n")
-    print("--- Score Breakdown (Sample of 3 Flows) ---")
-    for f_id in list(flow_scores.keys())[:3]:
-        print(f"  Flow {f_id}: {flow_scores[f_id]:.2f}")
-    print("="*50)
+    print("--- Score Breakdown (All Flows) ---")
+    
+    # --- START OF MODIFICATION ---
+
+    for f_id, scores in flow_scores.items():
+        print(f"  Flow {f_id:<4} | Total Score: {scores['total']:>6.2f}")
+        print(f"    └ Traffic: {scores['traffic']:.3f} | Delay: {scores['delay']:.3f} | Distance: {scores['distance']:.3f} | Landing: {scores['landing']:.3f}")
+
+    # --- END OF MODIFICATION ---
+    
+    print("="*60)
 
     return overall_score
 
