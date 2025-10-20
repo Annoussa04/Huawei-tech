@@ -78,7 +78,7 @@ for t in range(T):
                     if score > best_score:
                         best_score = score
                         best_uav_coords = candidate_coords
-        urgency = remaining_q + 0.02 * best_score
+        urgency = remaining_q + 26500 * best_score
 
         return urgency
 
