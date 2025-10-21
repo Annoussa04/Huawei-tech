@@ -10,7 +10,7 @@ def get_bandwidth_multiplier(t_effective):
 STABILITY_BONUS = float('+inf')
 ALPHA = 0.1
 EPSILON = 1e-9
-LANDING_UAV_THRESHOLD = 3
+LANDING_UAV_THRESHOLD = 5
 
 M, N, FN, T = map(int, input().split())
 
