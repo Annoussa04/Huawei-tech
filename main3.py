@@ -75,9 +75,8 @@ for t in range(T):
         return urgency
 
     sorted_active_flows = sorted(active_flows, key=get_flow_priority, reverse=False)
-
+    number_of_flows = len(sorted_active_flows)
     while sorted_active_flows != []:
-        number_of_flows = len(sorted_active_flows)
         f, flow_data = sorted_active_flows.pop()
         Q_total = flow_data['Q_total']
         best_uav_coords = None
