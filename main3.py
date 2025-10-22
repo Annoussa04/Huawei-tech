@@ -74,9 +74,11 @@ for t in range(T):
 
         return urgency
 
-    sorted_active_flows = sorted(active_flows, key=get_flow_priority, reverse=True)
+    sorted_active_flows = sorted(active_flows, key=get_flow_priority, reverse=False)
 
-    for f, flow_data in sorted_active_flows:
+    while sorted_active_flows != []:
+        number_of_flows = len(sorted_active_flows)
+        f, flow_data = sorted_active_flows.pop()
         Q_total = flow_data['Q_total']
         best_uav_coords = None
         best_score = float('-inf')
@@ -117,9 +119,10 @@ for t in range(T):
 
                 uav_x, uav_y = best_uav_coords
                 record_of_flows[f].append([t, uav_x, uav_y, q_transferrable])
+        if len(sorted_active_flows) <0.8*number_of_flows:
+            sorted_active_flows = sorted(sorted_active_flows, key=get_flow_priority, reverse=False)
 
 for f, records in record_of_flows.items():
     print(f, len(records))
     for rec in records:
         print(f"{rec[0]} {rec[1]} {rec[2]} {rec[3]}")
-
