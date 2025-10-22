@@ -10,7 +10,6 @@ def get_bandwidth_multiplier(t_effective):
 EPSILON = 1e-9
 ALPHA = 0.1
 LANDING_UAV_THRESHOLD = 5
-STABILITY_BONUS = float('inf')
 Tmax = 10
 
 M, N, FN, T = map(int, input().split())
@@ -54,8 +53,6 @@ for t in range(T):
     def get_flow_priority(flow_item):
         f, data = flow_item
         remaining_q = data['Q_rem']
-        time_left = max(1, T - t)
-
         best_uav_coords = None
         best_score = float('-inf')
 
@@ -79,9 +76,8 @@ for t in range(T):
 
                     if score > best_score:
                         best_score = score
-                        best_uav_coords = candidate_coords
         # cold = 0.3 * min(data['Q_rem'], available_bw[candidate_coords])/Q_total
-        urgency = remaining_q + 21000 * best_score
+        urgency = remaining_q + 26700 * best_score
 
         return urgency
 
