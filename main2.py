@@ -84,7 +84,7 @@ class FilePriorite:
     def inserer(self, priorite, valeur):
         """Insère un nouvel élément avec sa priorité"""
         self.data.append((priorite, valeur))
-        self.indices[valeur] = len(self.data) - 1
+        self.indices[valeur[1]] = len(self.data) - 1
         self._monter(len(self.data) - 1)
     
     def extraire_max(self):
@@ -106,7 +106,7 @@ class FilePriorite:
         if valeur not in self.indices:
             return False
         
-        i = self.indices[valeur]
+        i = self.indices[valeur[1]]
         ancienne_priorite = self.data[i][0]
         
         self.data[i] = (nouvelle_priorite, valeur)
@@ -120,34 +120,6 @@ class FilePriorite:
         
         return True
     
-    def supprimer(self, valeur):
-
-        if valeur not in self.indices:
-            return False
-        
-        i = self.indices[valeur]
-        derniere_priorite = self.data[i][0]
-
-        self._echanger(i, len(self.data) - 1)
-        self.data.pop()
-        del self.indices[valeur]
-        if i < len(self.data):
-            nouvelle_priorite = self.data[i][0]
-            if nouvelle_priorite > derniere_priorite:
-                self._monter(i)
-            else:
-                self._descendre(i)
-        
-        return True
-    
-    def trier(self):
-
-        self.data.sort(reverse=True)
-
-        self.indices = {valeur: i for i, (_, valeur) in enumerate(self.data)}
-    
-    def contient(self, valeur):
-        return valeur in self.indices
     
     def get_priorite(self, valeur):
         if valeur in self.indices:
@@ -198,13 +170,12 @@ for t in range(T):
 
     file = FilePriorite()
 
-    flow_to_value = {}
     
     for f, data in active_flows:
         L = get_flow_priority((f, data))
         valeur = (f, data, L[1]) 
         file.inserer(L[0], valeur)
-        flow_to_value[f] = valeur
+
 
     file.trier()
 
@@ -227,14 +198,9 @@ for t in range(T):
                 record_of_flows[f].append([t, uav_x, uav_y, q_transferrable])
         
         for f in UAV_flow[best_uav_coords]:
-            file.maj_priorite[(f,flows[f]) ,get_flow_priority((f, flows)) ]
+            file.maj_priorite[(f,flows[f]) ,get_flow_priority((f, flows[f])) ]
 
 
-    for f in list(flow_to_value.keys()):
-        if flows[f]['Q_rem'] <= EPSILON:
-            if flow_to_value[f] in file.indices:
-                file.supprimer(flow_to_value[f])
-            del flow_to_value[f]
 
 for f, records in record_of_flows.items():
     print(f, len(records))
