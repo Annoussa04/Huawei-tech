@@ -98,6 +98,7 @@ for t in range(T):
                             score += 0.1
                         else:
                             score = score + 0.1 / (flow_data['change_count'] + 1) - 0.1 / (flow_data['change_count'])
+                    score = Q_total * score
 
                     if score > best_score:
                         best_score = score
