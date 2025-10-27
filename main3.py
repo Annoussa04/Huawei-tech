@@ -90,14 +90,14 @@ for t in range(T):
                 if candidate_coords in available_bw and available_bw[candidate_coords] > EPSILON:
                     distance = abs(access_x - i) + abs(access_y - j)
                     distance_score_multiplier = 2 ** (-ALPHA * distance)
-                    q_i = min(data['Q_rem'], available_bw[candidate_coords])
+                    q_i = min(flow_data['Q_rem'], available_bw[candidate_coords])
                     score = 0.3 * q_i * distance_score_multiplier / Q_total
                     score += 0.4 * (q_i / Q_total) + 0.2 * T_max * q_i / ((t + T_max) * Q_total)
-                    if (i, j) != data['last_uav']:
-                        if data['change_count'] == 0:
+                    if (i, j) != flow_data['last_uav']:
+                        if flow_data['change_count'] == 0:
                             score += 0.1
                         else:
-                            score = score + 0.1 / (data['change_count'] + 1) - 0.1 / (data['change_count'])
+                            score = score + 0.1 / (flow_data['change_count'] + 1) - 0.1 / (flow_data['change_count'])
 
                     if score > best_score:
                         best_score = score
