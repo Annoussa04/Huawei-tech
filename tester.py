@@ -4,7 +4,7 @@ import sys
 from collections import defaultdict
 
 # --- Configuration ---
-SOLUTION_SCRIPT_NAME = "main.py" # The name of your solution file
+SOLUTION_SCRIPT_NAME = "main3.py" # The name of your solution file
 TIMEOUT_SECONDS = 10              # Max time your solution is allowed to run
 NUM_TESTS = 2                # Number of tests to run for the mean
 
