@@ -4,9 +4,9 @@ import sys
 from collections import defaultdict
 
 # --- Configuration ---
-SOLUTION_SCRIPT_NAME = "main3.py" # The name of your solution file
+SOLUTION_SCRIPT_NAME = "main.py" # The name of your solution file
 TIMEOUT_SECONDS = 10              # Max time your solution is allowed to run
-NUM_TESTS = 100                  # Number of tests to run for the mean
+NUM_TESTS = 2                # Number of tests to run for the mean
 
 # --- Test Case Generation Parameters ---
 # Feel free to change these to test different scenarios
@@ -15,8 +15,8 @@ GENERATE_PARAMS = {
     "N_range": (5, 15),
     "FN_range": (10, 50),
     "T_range": (100, 200),
-    "B_range": (50.0, 200.0),
-    "Q_total_range": (500, 2000),
+    "B_range": (0.0, 1000.0),
+    "Q_total_range": (1, 3000),
 }
 
 # --- Bandwidth Model (from PDF) ---
@@ -27,15 +27,13 @@ def get_bandwidth_multiplier(t_effective):
     return 1.0
 
 def generate_test_case():
-    """Generates a random, valid test case as a string."""
-    M = random.randint(*GENERATE_PARAMS["M_range"])
-    N = random.randint(*GENERATE_PARAMS["N_range"])
-    FN = random.randint(*GENERATE_PARAMS["FN_range"])
-    T = random.randint(*GENERATE_PARAMS["T_range"])
+    M = 70
+    N = 70
+    FN = 5000
+    T = 500
 
     lines = [f"{M} {N} {FN} {T}"]
     
-    # Generate UAVs
     for x in range(M):
         for y in range(N):
             B = round(random.uniform(*GENERATE_PARAMS["B_range"]), 2)
@@ -46,7 +44,7 @@ def generate_test_case():
     for f in range(FN):
         access_x = random.randint(0, M - 1)
         access_y = random.randint(0, N - 1)
-        t_start = random.randint(0, T // 2)
+        t_start = random.randint(0, 3 * T // 4)
         Q_total = random.randint(*GENERATE_PARAMS["Q_total_range"])
         
         m1 = random.randint(0, M - 1)
