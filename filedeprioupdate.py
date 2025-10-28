@@ -10,6 +10,7 @@ def get_bandwidth_multiplier(t_effective):
 EPSILON = 1e-9
 ALPHA = 0.1
 T_max = 10
+lambda_ = 0.1 
 
 M, N, FN, T = map(int, input().split())
 
@@ -31,17 +32,7 @@ for _ in range(FN):
         'last_uav': None, 'change_count': 0, 'score': 0
     }
 
-UAV_flow = {}
-for uav_coords in UAVs.keys():
-    UAV_flow[uav_coords] = []
 
-for f, flow_data in flows.items():
-    m1, n1, m2, n2 = flow_data['m1'], flow_data['n1'], flow_data['m2'], flow_data['n2']
-    for i in range(m1, m2 + 1):
-        for j in range(n1, n2 + 1):
-            uav_coords = (i, j)
-            if uav_coords in UAV_flow:
-                UAV_flow[uav_coords].append(f)
                 
 precomputed_puissance = {}
 def puissance(k):
@@ -147,11 +138,24 @@ for t in range(T):
     for f, data in flows.items():
         if data['t_start'] <= t and data['Q_rem'] > EPSILON:
             active_flows.append((f, data))
+    
+    congestion = {}
+    for uav_coords in UAVs.keys():
+        congestion[uav_coords] = 0
+
+    for f, flow_data in flows.items():
+        m1, n1, m2, n2 = flow_data['m1'], flow_data['n1'], flow_data['m2'], flow_data['n2']
+        for i in range(m1, m2 + 1):
+            for j in range(n1, n2 + 1):
+                uav_coords = (i, j)
+                if uav_coords in congestion:
+                    congestion[uav_coords] += 1
 
     def get_flow_priority(flow_item):
         f, data = flow_item
         Q_total = data['Q_total']
         best_score = float('-inf')
+        sec_best_score = float('-inf')
         best_cord = None
         distances = precomputed_distance[f]
         for (i, j), dist_mult in distances.items():
@@ -164,8 +168,11 @@ for t in range(T):
                         score += 0.1
                     else:
                         score += 0.1 / (data['change_count'] + 1) - 0.1 / (data['change_count'])
-                score = Q_total * score
+                score = Q_total * score * 1/(1 + lambda_ * congestion[(i, j)])
+                if score > sec_best_score and score < best_score:
+                    sec_best_score = score
                 if score > best_score:
+                    sec_best_score = best_score
                     best_score = score
                     best_cord = (i, j)
         return [best_score, best_cord]
