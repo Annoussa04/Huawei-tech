@@ -42,15 +42,23 @@ for f, flow_data in flows.items():
             uav_coords = (i, j)
             if uav_coords in UAV_flow:
                 UAV_flow[uav_coords].append(f)
-
+                
+precomputed_puissance = {}
+def puissance(k):
+    if k in precomputed_puissance:
+        return precomputed_puissance[k]
+    else:
+        res = 2**(-0.1*k)
+        precomputed_puissance[k] = res
+        return res  
 precomputed_distance = {}
 for f, data in flows.items():
     access_x, access_y = data['access_x'], data['access_y']
     precomputed_distance[f] = {}
     for i in range(data['m1'], data['m2'] + 1):
         for j in range(data['n1'], data['n2'] + 1):
-            dist = abs(access_x - i) + abs(access_y - j)
-            precomputed_distance[f][(i, j)] = 2 ** (-ALPHA * dist)
+            dist = int(abs(access_x - i) + abs(access_y - j))
+            precomputed_distance[f][(i, j)] = puissance(dist)
 
 
 class FilePriorite:
@@ -195,3 +203,4 @@ for f, records in record_of_flows.items():
     print(f, len(records))
     for rec in records:
         print(f"{rec[0]} {rec[1]} {rec[2]} {rec[3]}")
+
