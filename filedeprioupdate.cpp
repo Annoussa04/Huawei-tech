@@ -1,19 +1,21 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-// ------------------- Hash pour pair<int,int> -------------------
+
 struct PairHash {
     size_t operator()(const pair<int,int>& p) const noexcept {
-        return (static_cast<size_t>(p.first) << 32) ^ static_cast<size_t>(p.second);
+        // cast to uint64_t to ensure defined shift behavior
+        return (static_cast<uint64_t>(static_cast<uint32_t>(p.first)) << 32) ^ static_cast<uint64_t>(static_cast<uint32_t>(p.second));
     }
 };
 
-// ------------------- Constantes -------------------
+
 const double EPSILON = 1e-9;
 const int T_max = 10;
-const double lambda_ = 0.006;
+const double lambda_ = 0.01;
+const double mu_ = 0.01; 
 
-// ------------------- Fonctions utilitaires -------------------
+
 double get_bandwidth_multiplier(int t_effective) {
     int t_mod_10 = t_effective % 10;
     if (t_mod_10 == 0 || t_mod_10 == 1 || t_mod_10 == 8 || t_mod_10 == 9)
@@ -34,7 +36,7 @@ double puissance(int k) {
     return res;
 }
 
-// ------------------- Structures -------------------
+
 struct UAV {
     double B;
     int phi;
@@ -49,11 +51,11 @@ struct Flow {
     int change_count = 0;
 };
 
-// ------------------- File de priorité personnalisée -------------------
+
 struct HeapValue {
-    int id;            // id du flow
-    Flow* flow_ptr;    // pointeur vers la structure Flow
-    pair<int,int> uav; // coordonnées du meilleur UAV pour cette entrée
+    int id;            
+    Flow* flow_ptr;    
+    pair<int,int> uav; 
 };
 
 class FilePriorite {
@@ -123,11 +125,23 @@ public:
         return true;
     }
 
+    // Met à jour la priorité : si l'uav change, met à jour UAV_besties aussi
     bool maj_priorite(const HeapValue &valeur, double nouvelle_priorite) {
         auto it = indices.find(valeur.id);
         if (it == indices.end()) return false;
         int i = it->second;
         double ancienne = data[i].first;
+        // si l'uav a changé, mettre à jour UAV_besties
+        pair<int,int> ancienne_uav = data[i].second.uav;
+        pair<int,int> nouvelle_uav = valeur.uav;
+        if (ancienne_uav != nouvelle_uav) {
+            auto it_old = UAV_besties.find(ancienne_uav);
+            if (it_old != UAV_besties.end()) {
+                it_old->second.erase(valeur.id);
+                if (it_old->second.empty()) UAV_besties.erase(it_old);
+            }
+            UAV_besties[nouvelle_uav].insert(valeur.id);
+        }
         data[i] = {nouvelle_priorite, valeur};
         if (nouvelle_priorite > ancienne) monter(i);
         else if (nouvelle_priorite < ancienne) descendre(i);
@@ -135,7 +149,7 @@ public:
     }
 };
 
-// ------------------- Main -------------------
+
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
@@ -170,8 +184,7 @@ int main() {
         record_of_flows[f] = {};
     }
 
-    // Precompute distances -> puissance
-
+    // bach n optimisiw complexité
     unordered_map<int, unordered_map<pair<int,int>, double, PairHash>> precomputed_distance;
     for (auto &p : flows) {
         int f = p.first;
@@ -185,7 +198,7 @@ int main() {
     }
 
     for (int t = 0; t < T; ++t) {
-        // Available bandwidth
+       
         unordered_map<pair<int,int>, double, PairHash> available_bw;
         for (auto &u : UAVs) {
             auto coords = u.first;
@@ -194,37 +207,45 @@ int main() {
             available_bw[coords] = ud.B * multiplier;
         }
 
-        // Active flows
+ 
         vector<pair<int,Flow*>> active_flows;
         for (auto &fp : flows) {
             if (fp.second.t_start <= t && fp.second.Q_rem > EPSILON) {
                 active_flows.emplace_back(fp.first, &fp.second);
             }
         }
-        std::unordered_map<std::pair<int, int>, int, PairHash> congestion;
+
+       
+        unordered_map<pair<int, int>, int, PairHash> congestion;
         for (const auto& uav_entry : UAVs) {
             congestion[uav_entry.first] = 0;
         }
 
+       
+        unordered_map<int, double> rarity;
+
+    
         for (const auto& flow_entry : flows) {
             int f = flow_entry.first;
             const Flow& flow_data = flow_entry.second;
+            rarity[f] = 1.0;
             int m1 = flow_data.m1, n1 = flow_data.n1, m2 = flow_data.m2, n2 = flow_data.n2;
             for (int i = m1; i <= m2; ++i) {
                 for (int j = n1; j <= n2; ++j) {
+                    rarity[f] += 1.0;
                     std::pair<int, int> uav_coords = std::make_pair(i, j);
-                    if (congestion.find(uav_coords) != congestion.end()) {
-                        congestion[uav_coords] += 1;
+                    auto itc = congestion.find(uav_coords);
+                    if (itc != congestion.end()) {
+                        itc->second += 1;
+                    }
+                }
             }
         }
-    }
-}
 
-        // Fonction locale pour calculer priorité
+
         auto get_flow_priority = [&](int f, Flow *data) -> pair<double, pair<int,int>> {
             double Q_total = data->Q_total;
             double best_score = -1e300;
-            double sec_best_score = -1e300;
             pair<int,int> best_cord = {-1,-1};
             auto it_dist_map = precomputed_distance.find(f);
             if (it_dist_map == precomputed_distance.end()) return {best_score, best_cord};
@@ -236,26 +257,33 @@ int main() {
                 double bw_here = it_av->second;
                 if (bw_here <= EPSILON) continue;
                 double q_i = min(data->Q_rem, bw_here);
-                double score = 0.3 * q_i * dist_mult / Q_total;
+                double score = 0.0;
+                score += 0.3 * q_i * dist_mult / Q_total;
                 score += 0.4 * (q_i / Q_total) + 0.2 * T_max * q_i / ((t + T_max) * Q_total);
                 if (coords != data->last_uav) {
                     if (data->change_count == 0) score += 0.1;
                     else score += 0.1 / (data->change_count + 1.0) - 0.1 / (double)data->change_count;
                 }
-                score = Q_total * score* 1/(1 + lambda_ * congestion[coords]);
-                if (score > best_score) {
-                    sec_best_score = best_score;
-                    best_score = score;
+                double congestion_val = 0.0;
+                auto itc = congestion.find(coords);
+                if (itc != congestion.end()) congestion_val = (double)itc->second;
+                double rarity_val = 1.0;
+                auto itr = rarity.find(f);
+                if (itr != rarity.end()) rarity_val = itr->second;
+
+            
+                double factor1 = 1.0 / (1.0 + lambda_ * congestion_val);
+                double factor2 = (1.0 + mu_ * (1.0 / rarity_val));
+                double full_score = Q_total * score * factor1 * factor2;
+
+                if (full_score > best_score) {
+                    best_score = full_score;
                     best_cord = coords;
-                }
-                else if (score > sec_best_score) {
-                    sec_best_score = score;
                 }
             }
             return {best_score, best_cord};
         };
 
-        // Construire la heap
         FilePriorite file;
         for (auto &af : active_flows) {
             int f = af.first;
@@ -300,7 +328,6 @@ int main() {
         }
     }
 
-    // --- Affichage final ---
     for (auto &p : record_of_flows) {
         int f = p.first;
         auto &records = p.second;
@@ -316,4 +343,3 @@ int main() {
 
     return 0;
 }
-
