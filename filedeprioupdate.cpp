@@ -12,8 +12,8 @@ struct PairHash {
 
 const double EPSILON = 1e-9;
 const int T_max = 10;
-const double lambda_ = 0.01;
-const double mu_ = 0.01; 
+const double lambda_ = 0.5;
+const double mu_ = 0.1; 
 
 
 double get_bandwidth_multiplier(int t_effective) {
@@ -216,31 +216,41 @@ int main() {
         }
 
        
-        unordered_map<pair<int, int>, int, PairHash> congestion;
+ 
+
+        // Réinitialisation congestion
+        unordered_map<pair<int,int>, int, PairHash> congestion;
         for (const auto& uav_entry : UAVs) {
             congestion[uav_entry.first] = 0;
-        }
+}
 
-       
+// Réinitialisation rarity
         unordered_map<int, double> rarity;
 
-    
-        for (const auto& flow_entry : flows) {
-            int f = flow_entry.first;
-            const Flow& flow_data = flow_entry.second;
+// Calcul sur *active flows seulement*
+        for (auto &af : active_flows) {
+            int f = af.first;
+            Flow &flow_data = *af.second;
+
             rarity[f] = 1.0;
-            int m1 = flow_data.m1, n1 = flow_data.n1, m2 = flow_data.m2, n2 = flow_data.n2;
+
+            int m1 = flow_data.m1, n1 = flow_data.n1;
+            int m2 = flow_data.m2, n2 = flow_data.n2;
+
             for (int i = m1; i <= m2; ++i) {
                 for (int j = n1; j <= n2; ++j) {
+
                     rarity[f] += 1.0;
-                    std::pair<int, int> uav_coords = std::make_pair(i, j);
+
+                    pair<int,int> uav_coords = {i, j};
                     auto itc = congestion.find(uav_coords);
                     if (itc != congestion.end()) {
                         itc->second += 1;
-                    }
-                }
             }
         }
+    }
+}
+
 
 
         auto get_flow_priority = [&](int f, Flow *data) -> pair<double, pair<int,int>> {
