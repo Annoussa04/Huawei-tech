@@ -198,7 +198,8 @@ int main() {
     }
 
     for (int t = 0; t < T; ++t) {
-       
+        double sum_of_q = 0;
+        double sum_of_square_if_q = 0;
         unordered_map<pair<int,int>, double, PairHash> available_bw;
         for (auto &u : UAVs) {
             auto coords = u.first;
@@ -312,9 +313,22 @@ int main() {
             int f = hv.id;
             Flow *flow_data = hv.flow_ptr;
             pair<int,int> best_uav_coords = hv.uav;
+            double q_opt_fairness;
             if (best_uav_coords.first == -1) continue;
-
+            if (sum_of_q != 0) {
+                q_opt_fairness = sum_of_square_if_q/ sum_of_q}
+            else{
+                q_opt_fairness = 3001.; // max_possible 
+            }
             double q_transferrable = min(flow_data->Q_rem, available_bw[best_uav_coords]);
+            
+            if (q_transferrable > 2 * q_opt_fairness){
+                continue;
+            }
+            else {
+                q_transferrable = min (q_transferrable, q_opt_fairness);
+            }
+
             if (q_transferrable > EPSILON) {
                 if (best_uav_coords != flow_data->last_uav) flow_data->change_count++;
                 flow_data->Q_rem -= q_transferrable;
@@ -322,6 +336,9 @@ int main() {
                 flow_data->last_uav = best_uav_coords;
                 record_of_flows[f].push_back({(double)t, (double)best_uav_coords.first, (double)best_uav_coords.second, q_transferrable});
             }
+            
+            sum_of_q += q_transferrable;
+            sum_of_square_if_q += pow(q_transferrable,2) ; 
 
             auto it_b = file.UAV_besties.find(best_uav_coords);
             if (it_b != file.UAV_besties.end()) {
