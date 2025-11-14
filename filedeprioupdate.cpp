@@ -316,7 +316,7 @@ int main() {
             double q_opt_fairness;
             if (best_uav_coords.first == -1) continue;
             if (sum_of_q != 0) {
-                q_opt_fairness = sum_of_square_if_q/ sum_of_q}
+                q_opt_fairness = sum_of_square_if_q/ sum_of_q;}
             else{
                 q_opt_fairness = 3001.; // max_possible 
             }
